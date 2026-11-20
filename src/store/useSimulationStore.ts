@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Point, Edge, ParticleRenderData, PSOParams, WorkerResponse } from '../types/simulation';
+import type { Point, Edge, ParticleRenderData, PSOParams } from '../types/simulation';
 
 interface SimulationState {
   terminals: Point[];
@@ -8,115 +8,79 @@ interface SimulationState {
   particles: ParticleRenderData[];
   params: PSOParams;
   iteration: number;
-  bestCost: number | null;
-  mstBaseCost: number | null;
   isRunning: boolean;
 
+  // Jedyne aktywne akcje w prototypie UI
   addTerminal: (point: Point) => void;
   clearAll: () => void;
   updateParams: (partial: Partial<PSOParams>) => void;
-  runOptimalSteinerSearch: () => void;
-  stepOptimization: () => void;
-  stopSimulation: () => void;
+
+  // Atrapy akcji (odłączona symulacja)
+  setIterationPreview: (iter: number) => void;
+  togglePlayMock: () => void;
+  resetSwarmMock: () => void;
+  stepMock: (delta: number) => void;
+  computeInstantMock: () => void;
+  generateRandomMock: () => void;
 }
 
-let worker: Worker | null = null;
-
-const getWorker = (set: (fn: (state: SimulationState) => Partial<SimulationState>) => void): Worker => {
-  if (!worker) {
-    worker = new Worker(new URL('../workers/psoWorker.ts', import.meta.url), {
-      type: 'module',
-    });
-
-    worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
-      const data = e.data;
-      if (data.type === 'UPDATE') {
-        set(() => ({
-          iteration: data.iteration,
-          bestCost: data.bestCost,
-          mstBaseCost: data.mstBaseCost,
-          steinerPoints: data.steinerPoints,
-          treeEdges: data.treeEdges,
-          particles: data.particles,
-          isRunning: !data.isFinished,
-        }));
-      }
-    };
-  }
-  return worker;
-};
-
-export const useSimulationStore = create<SimulationState>((set, get) => ({
+export const useSimulationStore = create<SimulationState>((set) => ({
   terminals: [],
   steinerPoints: [],
   treeEdges: [],
   particles: [],
   iteration: 0,
-  bestCost: null,
-  mstBaseCost: null,
   isRunning: false,
+
   params: {
+    // 1. Parametry PSO
     swarmSize: 50,
     inertia: 0.72,
     cognitive: 1.49,
     social: 1.49,
-    maxIterations: 1200,
+    useMaxVelocity: true,
+    maxVelocity: 15,
+    stopCondition: 'iterations',
+    maxIterations: 500,
+    convergenceEpsilon: 0.01,
+    convergencePatience: 50,
+
+    // 2. Sterowanie czasem
+    playbackSpeed: 1,
+    interpolateMotion: true,
+
+    // 4. Konfiguracja wierzchołków
+    preset: 'custom',
+    randomVertexCount: 5,
+    dynamicDragMode: false,
   },
 
   addTerminal: (point) =>
     set((state) => ({
       terminals: [...state.terminals, point],
-      steinerPoints: [],
-      treeEdges: [],
-      particles: [],
-      iteration: 0,
-      bestCost: null,
-      mstBaseCost: null,
+      params: { ...state.params, preset: 'custom' },
     })),
 
-  clearAll: () => {
-    const w = getWorker(set);
-    w.postMessage({ type: 'STOP' });
+  clearAll: () =>
     set({
       terminals: [],
       steinerPoints: [],
       treeEdges: [],
       particles: [],
       iteration: 0,
-      bestCost: null,
-      mstBaseCost: null,
       isRunning: false,
-    });
-  },
+    }),
 
   updateParams: (partial) =>
     set((state) => ({
       params: { ...state.params, ...partial },
     })),
 
-  runOptimalSteinerSearch: () => {
-    const { terminals, params } = get();
-    if (terminals.length < 2) return;
-    const w = getWorker(set);
-    set({ isRunning: true });
-    w.postMessage({ type: 'INIT_AND_RUN', terminals, params });
-  },
-
-  stepOptimization: () => {
-    const { terminals, params, iteration } = get();
-    if (terminals.length < 2) return;
-    const w = getWorker(set);
-    set({ isRunning: false });
-    if (iteration === 0) {
-      w.postMessage({ type: 'INIT_STEP_MODE', terminals, params });
-    } else {
-      w.postMessage({ type: 'NEXT_STEP', params });
-    }
-  },
-
-  stopSimulation: () => {
-    const w = getWorker(set);
-    w.postMessage({ type: 'STOP' });
-    set({ isRunning: false });
-  },
+  // Odłączone funkcje symulacji (no-op / wyłącznie reakcja wizualna UI)
+  setIterationPreview: (iter) => set({ iteration: iter }),
+  togglePlayMock: () => {},
+  resetSwarmMock: () => set({ iteration: 0, isRunning: false }),
+  stepMock: () => {},
+  computeInstantMock: () => {},
+  generateRandomMock: () => {},
 }));

@@ -15,7 +15,7 @@ export const SwarmCanvas: React.FC<SwarmCanvasProps> = ({
   treeEdges,
   particles,
   onAddTerminal,
-}) => {
+}) => { 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // 1. Obsługa kliknięcia myszą — przelicza pozycję kursora na współrzędne płótna
@@ -117,13 +117,13 @@ export const SwarmCanvas: React.FC<SwarmCanvasProps> = ({
   }, [terminals, steinerPoints, treeEdges, particles]);
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-slate-100 p-4">
+    <div className="flex-1 flex items-center justify-center bg-slate-100 p-4 overflow-hidden min-h-0">
       <canvas
         ref={canvasRef}
         width={900}
-        height={650}
+        height={600}
         onClick={handleCanvasClick}
-        className="bg-white rounded-xl shadow-md border border-slate-200 cursor-crosshair"
+        className="max-w-full max-h-full bg-white rounded-xl shadow-md border border-slate-200 cursor-crosshair"
       />
     </div>
   );

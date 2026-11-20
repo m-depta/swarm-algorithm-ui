@@ -16,12 +16,39 @@ export interface ParticleRenderData {
   vy: number;
 }
 
+export type StopConditionType = 'iterations' | 'convergence';
+
+export type PresetType =
+  | 'custom'
+  | 'equilateral_triangle'
+  | 'obtuse_triangle'
+  | 'square'
+  | 'pentagon'
+  | 'hexagon';
+
+export type PlaybackSpeed = 0.1 | 0.5 | 1 | 5;
+
 export interface PSOParams {
-  swarmSize: number;
-  inertia: number;      // w - bezwładność
-  cognitive: number;    // c1 - współczynnik poznawczy (pBest)
-  social: number;       // c2 - współczynnik społeczny (gBest)
-  maxIterations: number;
+  // 1. Parametry algorytmu PSO
+  swarmSize: number;                // Liczba cząstek (N)
+  inertia: number;                  // Stała bezwładność (w)
+  cognitive: number;                // Współczynnik kognitywny (c1)
+  social: number;                   // Współczynnik socjalny (c2)
+  useMaxVelocity: boolean;          // Ograniczenie prędkości ON/OFF
+  maxVelocity: number;              // V_max
+  stopCondition: StopConditionType; // Warunek stopu
+  maxIterations: number;            // Sztywna liczba iteracji
+  convergenceEpsilon: number;       // Próg poprawy (epsilon)
+  convergencePatience: number;      // Liczba iteracji bez poprawy (k)
+
+  // 2. Sterowanie czasem i historia
+  playbackSpeed: PlaybackSpeed;     // Mnożnik tempa animacji
+  interpolateMotion: boolean;       // Interpolacja ruchu ON/OFF
+
+  // 4. Konfiguracja wierzchołków
+  preset: PresetType;               // Wybrany układ wbudowany
+  randomVertexCount: number;        // Liczba losowych wierzchołków do wygenerowania
+  dynamicDragMode: boolean;         // Przeciąganie wierzchołków w locie ON/OFF
 }
 
 export type WorkerCommand =
@@ -34,7 +61,7 @@ export interface WorkerResponse {
   type: 'UPDATE';
   iteration: number;
   bestCost: number;
-  mstBaseCost: number; // Koszt zwykłego MST bez punktów Steinera (do porównania)
+  mstBaseCost: number;
   steinerPoints: Point[];
   treeEdges: Edge[];
   particles: ParticleRenderData[];
